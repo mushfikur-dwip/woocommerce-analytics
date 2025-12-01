@@ -101,10 +101,6 @@ $courier_summary = WC_Analytics_Courier_Manager::get_courier_summary($date_range
                 <?php _e('View Customer LTV', 'woocommerce-analytics'); ?>
             </a>
             
-            <a href="<?php echo admin_url('admin.php?page=wc-analytics-marketing-roi'); ?>" class="button button-primary button-large" style="text-align: center;">
-                <?php _e('View Marketing ROI', 'woocommerce-analytics'); ?>
-            </a>
-            
             <a href="<?php echo admin_url('admin.php?page=wc-analytics-courier-performance'); ?>" class="button button-primary button-large" style="text-align: center;">
                 <?php _e('View Courier Performance', 'woocommerce-analytics'); ?>
             </a>

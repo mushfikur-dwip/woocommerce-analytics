@@ -82,16 +82,6 @@ class WC_Analytics_Admin_Menu {
             array('WC_Analytics_Dashboard_Page', 'render_customer_ltv')
         );
         
-        // Marketing ROI submenu
-        add_submenu_page(
-            'wc-analytics-dashboard',
-            __('Marketing ROI', 'woocommerce-analytics'),
-            __('Marketing ROI', 'woocommerce-analytics'),
-            $capability,
-            'wc-analytics-marketing-roi',
-            array('WC_Analytics_Dashboard_Page', 'render_marketing_roi')
-        );
-        
         // Courier Performance submenu
         add_submenu_page(
             'wc-analytics-dashboard',

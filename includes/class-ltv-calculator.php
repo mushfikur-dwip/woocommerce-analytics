@@ -37,6 +37,10 @@ class WC_Analytics_LTV_Calculator {
         
         // Hook into new customer registration
         add_action('woocommerce_created_customer', array($this, 'initialize_customer_ltv'));
+        
+        // Add LTV info to user profile
+        add_action('show_user_profile', array($this, 'display_ltv_on_profile'));
+        add_action('edit_user_profile', array($this, 'display_ltv_on_profile'));
     }
     
     /**
@@ -314,5 +318,126 @@ class WC_Analytics_LTV_Calculator {
         }
         
         return count($customers);
+    }
+    
+    /**
+     * Display LTV information on user profile page
+     */
+    public function display_ltv_on_profile($user) {
+        // Only show for customers
+        if (!in_array('customer', $user->roles) && !in_array('administrator', $user->roles)) {
+            return;
+        }
+        
+        global $wpdb;
+        $table_name = WC_Analytics_Database_Manager::get_table_name('customer_ltv');
+        
+        // Get LTV data
+        $ltv_data = $wpdb->get_row(
+            $wpdb->prepare("SELECT * FROM $table_name WHERE customer_id = %d", $user->ID)
+        );
+        
+        // If no data, try to calculate
+        if (!$ltv_data) {
+            $this->calculate_and_save_ltv($user->ID);
+            $ltv_data = $wpdb->get_row(
+                $wpdb->prepare("SELECT * FROM $table_name WHERE customer_id = %d", $user->ID)
+            );
+        }
+        
+        ?>
+        <h2><?php _e('Customer Analytics', 'woocommerce-analytics'); ?></h2>
+        <table class="form-table">
+            <tr>
+                <th><?php _e('Customer Segment', 'woocommerce-analytics'); ?></th>
+                <td>
+                    <?php
+                    if ($ltv_data) {
+                        $segment_colors = array(
+                            'platinum' => '#9b51e0',
+                            'gold' => '#f1c40f',
+                            'silver' => '#95a5a6',
+                            'bronze' => '#d35400'
+                        );
+                        $color = $segment_colors[$ltv_data->customer_segment] ?? '#666';
+                        ?>
+                        <span style="background: <?php echo esc_attr($color); ?>; color: #fff; padding: 5px 15px; border-radius: 3px; font-size: 14px; font-weight: bold; text-transform: uppercase; display: inline-block;">
+                            <?php echo esc_html(ucfirst($ltv_data->customer_segment)); ?>
+                        </span>
+                        <?php
+                    } else {
+                        echo '<span style="color: #999;">' . __('No data available', 'woocommerce-analytics') . '</span>';
+                    }
+                    ?>
+                </td>
+            </tr>
+            
+            <?php if ($ltv_data): ?>
+            <tr>
+                <th><?php _e('Lifetime Value', 'woocommerce-analytics'); ?></th>
+                <td>
+                    <strong style="font-size: 18px; color: #0073aa;">
+                        <?php echo wc_price($ltv_data->lifetime_value); ?>
+                    </strong>
+                </td>
+            </tr>
+            
+            <tr>
+                <th><?php _e('Total Orders', 'woocommerce-analytics'); ?></th>
+                <td><?php echo number_format($ltv_data->total_orders); ?></td>
+            </tr>
+            
+            <tr>
+                <th><?php _e('Total Spent', 'woocommerce-analytics'); ?></th>
+                <td><?php echo wc_price($ltv_data->total_spent); ?></td>
+            </tr>
+            
+            <tr>
+                <th><?php _e('Average Order Value', 'woocommerce-analytics'); ?></th>
+                <td><?php echo wc_price($ltv_data->average_order_value); ?></td>
+            </tr>
+            
+            <tr>
+                <th><?php _e('Customer Status', 'woocommerce-analytics'); ?></th>
+                <td>
+                    <?php if ($ltv_data->is_active): ?>
+                        <span style="color: #46b450; font-weight: bold;">● <?php _e('Active', 'woocommerce-analytics'); ?></span>
+                    <?php else: ?>
+                        <span style="color: #dc3232; font-weight: bold;">● <?php _e('Inactive', 'woocommerce-analytics'); ?></span>
+                    <?php endif; ?>
+                    <br>
+                    <small style="color: #666;">
+                        <?php printf(__('Last order: %d days ago', 'woocommerce-analytics'), $ltv_data->days_since_last_order); ?>
+                    </small>
+                </td>
+            </tr>
+            
+            <tr>
+                <th><?php _e('First Order', 'woocommerce-analytics'); ?></th>
+                <td>
+                    <?php echo $ltv_data->first_order_date ? date_i18n(get_option('date_format'), strtotime($ltv_data->first_order_date)) : '-'; ?>
+                </td>
+            </tr>
+            
+            <tr>
+                <th><?php _e('Last Order', 'woocommerce-analytics'); ?></th>
+                <td>
+                    <?php echo $ltv_data->last_order_date ? date_i18n(get_option('date_format'), strtotime($ltv_data->last_order_date)) : '-'; ?>
+                </td>
+            </tr>
+            
+            <tr>
+                <th><?php _e('Predicted LTV', 'woocommerce-analytics'); ?></th>
+                <td>
+                    <?php echo wc_price($ltv_data->predicted_ltv); ?>
+                    <br>
+                    <small style="color: #666;">
+                        <?php _e('Based on purchase patterns', 'woocommerce-analytics'); ?>
+                    </small>
+                </td>
+            </tr>
+            <?php endif; ?>
+        </table>
+        <?php
     }
 }

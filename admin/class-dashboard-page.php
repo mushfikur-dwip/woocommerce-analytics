@@ -47,17 +47,6 @@ class WC_Analytics_Dashboard_Page {
     }
     
     /**
-     * Render marketing ROI page
-     */
-    public static function render_marketing_roi() {
-        if (!current_user_can('manage_woocommerce')) {
-            wp_die(__('You do not have sufficient permissions to access this page.', 'woocommerce-analytics'));
-        }
-        
-        include WC_ANALYTICS_PLUGIN_DIR . 'admin/views/marketing-roi.php';
-    }
-    
-    /**
      * Render courier performance page
      */
     public static function render_courier_performance() {
@@ -140,7 +129,6 @@ class WC_Analytics_Dashboard_Page {
 // Register AJAX handlers
 add_action('admin_post_wc_analytics_export_profits', 'wc_analytics_export_profits_csv');
 add_action('admin_post_wc_analytics_export_ltv', 'wc_analytics_export_ltv_csv');
-add_action('admin_post_wc_analytics_export_roi', 'wc_analytics_export_roi_csv');
 add_action('admin_post_wc_analytics_export_courier', 'wc_analytics_export_courier_csv');
 
 /**
@@ -168,18 +156,6 @@ function wc_analytics_export_ltv_csv() {
     $headers = array('Customer ID', 'Email', 'Name', 'Total Orders', 'Total Spent', 'Lifetime Value', 'Segment', 'Last Order Date');
     
     WC_Analytics_Dashboard_Page::export_csv($data, 'customer-ltv-' . date('Y-m-d') . '.csv', $headers);
-}
-
-/**
- * Export marketing ROI to CSV
- */
-function wc_analytics_export_roi_csv() {
-    $date_range = WC_Analytics_Dashboard_Page::get_date_range();
-    $data = WC_Analytics_Attribution_Tracker::get_channel_performance($date_range['start'], $date_range['end']);
-    
-    $headers = array('Source', 'Medium', 'Campaign', 'Conversions', 'Revenue', 'Profit', 'Spend', 'ROI %');
-    
-    WC_Analytics_Dashboard_Page::export_csv($data, 'marketing-roi-' . date('Y-m-d') . '.csv', $headers);
 }
 
 /**

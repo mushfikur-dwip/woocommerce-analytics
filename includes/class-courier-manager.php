@@ -34,6 +34,7 @@ class WC_Analytics_Courier_Manager {
         // Add courier metabox to orders
         add_action('add_meta_boxes', array($this, 'add_courier_metabox'));
         add_action('save_post_shop_order', array($this, 'save_courier_data'), 10, 2);
+        add_action('woocommerce_process_shop_order_meta', array($this, 'save_courier_data_wc'), 10, 2);
         
         // Hook into order status changes
         add_action('woocommerce_order_status_changed', array($this, 'track_delivery_status'), 10, 4);
@@ -272,6 +273,13 @@ class WC_Analytics_Courier_Manager {
         
         // Update database record
         $this->update_courier_tracking($order_id);
+    }
+    
+    /**
+     * Save courier data (WooCommerce specific hook)
+     */
+    public function save_courier_data_wc($order_id, $post) {
+        $this->save_courier_data($order_id, $post);
     }
     
     /**
