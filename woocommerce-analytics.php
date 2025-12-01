@@ -1,11 +1,10 @@
 <?php
 /**
  * Plugin Name: WooCommerce Performance Analytics
- * Plugin URI: https://mushfikurrahman.com/woocommerce-analytics
  * Description: Comprehensive analytics plugin for WooCommerce with profit tracking, customer LTV, marketing ROI, and courier performance monitoring
  * Version: 1.0.0
  * Author: Mushfikur Rahman
- * Author URI: https://mushfikurrahman.com
+ * Author URI: https://fb.me/mushfikur.a.k
  * License: GPL v2 or later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain: woocommerce-analytics
@@ -26,6 +25,15 @@ define('WC_ANALYTICS_VERSION', '1.0.0');
 define('WC_ANALYTICS_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('WC_ANALYTICS_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('WC_ANALYTICS_PLUGIN_BASENAME', plugin_basename(__FILE__));
+
+/**
+ * Declare HPOS compatibility
+ */
+add_action('before_woocommerce_init', function() {
+    if (class_exists(\Automattic\WooCommerce\Utilities\FeaturesUtil::class)) {
+        \Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility('custom_order_tables', __FILE__, true);
+    }
+});
 
 /**
  * Check if WooCommerce is active
