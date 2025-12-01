@@ -1,0 +1,224 @@
+/**
+ * Admin Styles for WooCommerce Analytics
+ */
+
+/* Dashboard Cards */
+.wc-analytics-dashboard .wc-analytics-card {
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.wc-analytics-dashboard .wc-analytics-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* Date Filter Form */
+.wc-analytics-date-filter {
+  background: #fff;
+  padding: 15px;
+  border-radius: 4px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.wc-analytics-date-filter label {
+  font-weight: 600;
+  margin: 0;
+}
+
+.wc-analytics-date-filter input[type="date"] {
+  padding: 6px 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+/* Tables */
+.wc-analytics-dashboard table.wp-list-table {
+  border: 1px solid #ddd;
+}
+
+.wc-analytics-dashboard table.wp-list-table th {
+  background: #f8f9fa;
+  font-weight: 600;
+  padding: 12px;
+}
+
+.wc-analytics-dashboard table.wp-list-table td {
+  padding: 12px;
+  vertical-align: middle;
+}
+
+.wc-analytics-dashboard table.wp-list-table tr:hover {
+  background: #f9f9f9;
+}
+
+/* Responsive Grid */
+@media (max-width: 782px) {
+  .wc-analytics-summary-cards {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)) !important;
+  }
+
+  .wc-analytics-date-filter {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .wc-analytics-date-filter input[type="date"],
+  .wc-analytics-date-filter button {
+    width: 100%;
+  }
+}
+
+/* Loading State */
+.wc-analytics-loading {
+  position: relative;
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.wc-analytics-loading::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 30px;
+  height: 30px;
+  margin: -15px 0 0 -15px;
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid #0073aa;
+  border-radius: 50%;
+  animation: wc-analytics-spin 1s linear infinite;
+}
+
+@keyframes wc-analytics-spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* Status Badges */
+.wc-analytics-status-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.wc-analytics-status-badge.active {
+  background: #d4edda;
+  color: #155724;
+}
+
+.wc-analytics-status-badge.inactive {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+/* Chart Containers */
+.wc-analytics-chart-container {
+  position: relative;
+  height: 300px;
+  margin: 20px 0;
+}
+
+/* Tooltips */
+.wc-analytics-tooltip {
+  position: relative;
+  display: inline-block;
+  cursor: help;
+}
+
+.wc-analytics-tooltip:hover::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 8px 12px;
+  background: #333;
+  color: #fff;
+  border-radius: 4px;
+  font-size: 12px;
+  white-space: nowrap;
+  z-index: 1000;
+}
+
+/* Export Buttons */
+.wc-analytics-export-btn {
+  margin: 10px 0;
+}
+
+/* Notice Boxes */
+.wc-analytics-notice {
+  background: #fff;
+  border-left: 4px solid #0073aa;
+  padding: 15px;
+  margin: 20px 0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.wc-analytics-notice.warning {
+  border-left-color: #f56e28;
+}
+
+.wc-analytics-notice.success {
+  border-left-color: #46b450;
+}
+
+.wc-analytics-notice.error {
+  border-left-color: #dc3232;
+}
+
+/* Quick Links */
+.wc-analytics-quick-links a.button {
+  display: block;
+  text-align: center;
+  padding: 15px;
+  font-size: 14px;
+}
+
+/* Product Cost Metabox */
+.wc-analytics-cost-fields input[type="number"] {
+  width: 100%;
+}
+
+.wc-analytics-cost-fields .description {
+  font-size: 12px;
+  color: #666;
+  display: block;
+  margin-top: 3px;
+}
+
+/* Courier Metabox */
+.wc-analytics-courier-fields select,
+.wc-analytics-courier-fields input,
+.wc-analytics-courier-fields textarea {
+  width: 100%;
+  margin-bottom: 10px;
+}
+
+/* Segment Filters */
+.wc-analytics-segment-filter {
+  margin: 20px 0;
+}
+
+.wc-analytics-segment-filter .button {
+  margin-right: 5px;
+}
+
+/* Print Styles */
+@media print {
+  .wc-analytics-date-filter,
+  .wc-analytics-export-btn,
+  .wc-analytics-quick-links {
+    display: none !important;
+  }
+}
