@@ -148,6 +148,11 @@ class WC_Analytics_LTV_Calculator {
         
         $orders = array();
         foreach ($all_orders as $order) {
+            // Skip refunds
+            if (is_a($order, 'WC_Order_Refund')) {
+                continue;
+            }
+            
             $billing_phone = $order->get_billing_phone();
             $formatted_billing = $this->format_phone_number($billing_phone);
             
@@ -173,6 +178,11 @@ class WC_Analytics_LTV_Calculator {
         $customer_name = '';
         
         foreach ($orders as $order) {
+            // Double-check: Skip refunds
+            if (is_a($order, 'WC_Order_Refund')) {
+                continue;
+            }
+            
             $total_spent += $order->get_total();
             
             if (empty($customer_email)) {
@@ -309,6 +319,11 @@ class WC_Analytics_LTV_Calculator {
         $last_order_date = null;
         
         foreach ($orders as $order) {
+            // Skip refunds
+            if (is_a($order, 'WC_Order_Refund')) {
+                continue;
+            }
+            
             $total_spent += $order->get_total();
             
             $date_created = $order->get_date_created();
