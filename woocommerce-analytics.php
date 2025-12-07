@@ -68,6 +68,9 @@ function wc_analytics_activate() {
         wp_die(__('WooCommerce Performance Analytics requires WooCommerce to be installed and active.', 'woocommerce-analytics'));
     }
     
+    // Force migration by resetting version
+    delete_option('wc_analytics_db_version');
+    
     // Create database tables
     require_once WC_ANALYTICS_PLUGIN_DIR . 'includes/class-database-manager.php';
     WC_Analytics_Database_Manager::create_tables();

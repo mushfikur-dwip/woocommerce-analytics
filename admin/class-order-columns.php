@@ -86,6 +86,12 @@ class WC_Analytics_Order_Columns {
             return;
         }
         
+        // Skip refunds - they don't have billing info
+        if (is_a($order, 'WC_Order_Refund')) {
+            echo '<span style="color: #999;">—</span>';
+            return;
+        }
+        
         $customer_id = $order->get_customer_id();
         $phone = $order->get_billing_phone();
         

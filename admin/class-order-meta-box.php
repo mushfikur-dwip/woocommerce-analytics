@@ -58,6 +58,12 @@ class WC_Analytics_Order_Meta_Box {
             return;
         }
         
+        // Skip refunds - they don't have billing info
+        if (is_a($order, 'WC_Order_Refund')) {
+            echo '<p>' . __('Not applicable for refunds.', 'wc-analytics') . '</p>';
+            return;
+        }
+        
         $customer_id = $order->get_customer_id();
         $phone = $order->get_billing_phone();
         

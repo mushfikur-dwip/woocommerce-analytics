@@ -80,6 +80,11 @@ class WC_Analytics_LTV_Calculator {
             return;
         }
         
+        // Skip refunds - they don't have billing info
+        if (is_a($order, 'WC_Order_Refund')) {
+            return;
+        }
+        
         $customer_id = $order->get_customer_id();
         $phone = $this->format_phone_number($order->get_billing_phone());
         
