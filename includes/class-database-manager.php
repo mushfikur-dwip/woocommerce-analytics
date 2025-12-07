@@ -15,7 +15,7 @@ class WC_Analytics_Database_Manager {
     /**
      * Database version
      */
-    const DB_VERSION = '1.0';
+    const DB_VERSION = '1.1';
     
     /**
      * Create all plugin tables
@@ -39,8 +39,55 @@ class WC_Analytics_Database_Manager {
         // Create courier performance table
         self::create_courier_performance_table($charset_collate);
         
+        // Run migrations if needed
+        self::run_migrations();
+        
         // Update database version
         update_option('wc_analytics_db_version', self::DB_VERSION);
+    }
+    
+    /**
+     * Run database migrations
+     */
+    private static function run_migrations() {
+        $current_version = get_option('wc_analytics_db_version', '1.0');
+        
+        // Migration to 1.1 - Add phone column
+        if (version_compare($current_version, '1.1', '<')) {
+            self::migrate_to_1_1();
+        }
+    }
+    
+    /**
+     * Migration to version 1.1 - Add customer_phone column
+     */
+    private static function migrate_to_1_1() {
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'wc_analytics_customer_ltv';
+        
+        // Check if phone column exists
+        $column_exists = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS 
+                WHERE TABLE_SCHEMA = %s 
+                AND TABLE_NAME = %s 
+                AND COLUMN_NAME = 'customer_phone'",
+                DB_NAME,
+                $table_name
+            )
+        );
+        
+        if (empty($column_exists)) {
+            // Add customer_phone column
+            $wpdb->query(
+                "ALTER TABLE $table_name 
+                ADD COLUMN customer_phone varchar(20) DEFAULT NULL AFTER customer_email,
+                ADD INDEX customer_phone (customer_phone),
+                MODIFY COLUMN customer_id bigint(20) DEFAULT 0,
+                DROP INDEX customer_id,
+                ADD UNIQUE INDEX customer_identifier (customer_id, customer_phone)"
+            );
+        }
     }
     
     /**
@@ -93,8 +140,9 @@ class WC_Analytics_Database_Manager {
         
         $sql = "CREATE TABLE $table_name (
             id bigint(20) NOT NULL AUTO_INCREMENT,
-            customer_id bigint(20) NOT NULL,
+            customer_id bigint(20) DEFAULT 0,
             customer_email varchar(100) NOT NULL,
+            customer_phone varchar(20) DEFAULT NULL,
             customer_name varchar(200) DEFAULT NULL,
             total_orders int(11) DEFAULT 0,
             total_spent decimal(10,2) DEFAULT 0.00,
@@ -113,8 +161,9 @@ class WC_Analytics_Database_Manager {
             date_calculated datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
             date_updated datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             PRIMARY KEY  (id),
-            UNIQUE KEY customer_id (customer_id),
+            UNIQUE KEY customer_identifier (customer_id, customer_phone),
             KEY customer_email (customer_email),
+            KEY customer_phone (customer_phone),
             KEY lifetime_value (lifetime_value),
             KEY last_order_date (last_order_date),
             KEY customer_segment (customer_segment),

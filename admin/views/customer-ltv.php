@@ -15,6 +15,10 @@ $customers = WC_Analytics_LTV_Calculator::get_top_customers(array(
 ));
 
 $summary = WC_Analytics_LTV_Calculator::get_ltv_summary();
+
+// Get loyalty tiers
+require_once(WC_ANALYTICS_PLUGIN_DIR . 'admin/class-loyalty-settings.php');
+$loyalty_tiers = WC_Analytics_Loyalty_Settings::get_loyalty_tiers();
 ?>
 
 <div class="wrap">
@@ -25,18 +29,17 @@ $summary = WC_Analytics_LTV_Calculator::get_ltv_summary();
         <a href="<?php echo admin_url('admin.php?page=wc-analytics-customer-ltv'); ?>" class="button <?php echo !$segment ? 'button-primary' : ''; ?>">
             <?php _e('All', 'woocommerce-analytics'); ?>
         </a>
-        <a href="<?php echo admin_url('admin.php?page=wc-analytics-customer-ltv&segment=platinum'); ?>" class="button <?php echo $segment === 'platinum' ? 'button-primary' : ''; ?>">
-            <?php printf(__('Platinum (%d)', 'woocommerce-analytics'), $summary->platinum_customers ?? 0); ?>
-        </a>
-        <a href="<?php echo admin_url('admin.php?page=wc-analytics-customer-ltv&segment=gold'); ?>" class="button <?php echo $segment === 'gold' ? 'button-primary' : ''; ?>">
-            <?php printf(__('Gold (%d)', 'woocommerce-analytics'), $summary->gold_customers ?? 0); ?>
-        </a>
-        <a href="<?php echo admin_url('admin.php?page=wc-analytics-customer-ltv&segment=silver'); ?>" class="button <?php echo $segment === 'silver' ? 'button-primary' : ''; ?>">
-            <?php printf(__('Silver (%d)', 'woocommerce-analytics'), $summary->silver_customers ?? 0); ?>
-        </a>
-        <a href="<?php echo admin_url('admin.php?page=wc-analytics-customer-ltv&segment=bronze'); ?>" class="button <?php echo $segment === 'bronze' ? 'button-primary' : ''; ?>">
-            <?php printf(__('Bronze (%d)', 'woocommerce-analytics'), $summary->bronze_customers ?? 0); ?>
-        </a>
+        <?php foreach (array_reverse($loyalty_tiers) as $tier): 
+            $tier_slug = strtolower($tier['name']);
+            $count_key = $tier_slug . '_customers';
+            $count = $summary->$count_key ?? 0;
+        ?>
+            <a href="<?php echo admin_url('admin.php?page=wc-analytics-customer-ltv&segment=' . urlencode($tier_slug)); ?>" 
+               class="button <?php echo $segment === $tier_slug ? 'button-primary' : ''; ?>"
+               style="<?php echo $segment === $tier_slug ? 'background-color: ' . esc_attr($tier['color']) . '; border-color: ' . esc_attr($tier['color']) . ';' : ''; ?>">
+                <?php printf('%s (%d)', esc_html($tier['name']), $count); ?>
+            </a>
+        <?php endforeach; ?>
     </div>
     
     <!-- Summary Cards -->
@@ -89,16 +92,17 @@ $summary = WC_Analytics_LTV_Calculator::get_ltv_summary();
                         <td><?php echo esc_html($customer->customer_email); ?></td>
                         <td>
                             <?php
-                            $segment_colors = array(
-                                'platinum' => '#9b51e0',
-                                'gold' => '#f1c40f',
-                                'silver' => '#95a5a6',
-                                'bronze' => '#d35400'
-                            );
-                            $color = $segment_colors[$customer->customer_segment] ?? '#666';
+                            // Get tier color dynamically
+                            $tier_color = '#666';
+                            foreach ($loyalty_tiers as $tier) {
+                                if (strtolower($tier['name']) === strtolower($customer->customer_segment)) {
+                                    $tier_color = $tier['color'];
+                                    break;
+                                }
+                            }
                             ?>
-                            <span style="background: <?php echo $color; ?>; color: #fff; padding: 3px 8px; border-radius: 3px; font-size: 11px; text-transform: uppercase;">
-                                <?php echo esc_html($customer->customer_segment); ?>
+                            <span style="background: <?php echo esc_attr($tier_color); ?>; color: #fff; padding: 3px 8px; border-radius: 3px; font-size: 11px; text-transform: uppercase;">
+                                <?php echo esc_html(ucfirst($customer->customer_segment)); ?>
                             </span>
                         </td>
                         <td><?php echo number_format($customer->total_orders); ?></td>

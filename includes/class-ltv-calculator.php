@@ -81,13 +81,180 @@ class WC_Analytics_LTV_Calculator {
         }
         
         $customer_id = $order->get_customer_id();
+        $phone = $this->format_phone_number($order->get_billing_phone());
         
-        // Skip guest orders
-        if (!$customer_id) {
+        // Track by phone number (for both guest and registered customers)
+        if ($phone) {
+            $this->calculate_and_save_ltv_by_phone($phone, $customer_id);
+        }
+        
+        // Also track by customer ID if registered
+        if ($customer_id) {
+            $this->calculate_and_save_ltv($customer_id);
+        }
+    }
+    
+    /**
+     * Format phone number to international format (+880)
+     */
+    private function format_phone_number($phone) {
+        if (empty($phone)) {
+            return null;
+        }
+        
+        // Remove all non-numeric characters
+        $phone = preg_replace('/[^0-9+]/', '', $phone);
+        
+        // If starts with 0, replace with +880
+        if (substr($phone, 0, 1) === '0') {
+            $phone = '+880' . substr($phone, 1);
+        }
+        // If doesn't start with +, add +880
+        elseif (substr($phone, 0, 1) !== '+') {
+            $phone = '+880' . $phone;
+        }
+        
+        return $phone;
+    }
+    
+    /**
+     * Calculate and save LTV by phone number (for guest customers)
+     */
+    private function calculate_and_save_ltv_by_phone($phone, $customer_id = 0) {
+        global $wpdb;
+        
+        $table_name = $wpdb->prefix . 'wc_analytics_customer_ltv';
+        
+        // Get all orders with this phone number
+        $orders = wc_get_orders(array(
+            'limit' => -1,
+            'status' => array('completed', 'processing'),
+            'meta_query' => array(
+                array(
+                    'key' => '_billing_phone',
+                    'value' => array($phone, str_replace('+880', '0', $phone)),
+                    'compare' => 'IN'
+                )
+            )
+        ));
+        
+        if (empty($orders)) {
             return;
         }
         
-        $this->calculate_and_save_ltv($customer_id);
+        // Calculate metrics
+        $total_orders = count($orders);
+        $total_spent = 0;
+        $first_order_date = null;
+        $last_order_date = null;
+        $customer_email = '';
+        $customer_name = '';
+        
+        foreach ($orders as $order) {
+            $total_spent += $order->get_total();
+            
+            if (empty($customer_email)) {
+                $customer_email = $order->get_billing_email();
+            }
+            if (empty($customer_name)) {
+                $customer_name = trim($order->get_billing_first_name() . ' ' . $order->get_billing_last_name());
+            }
+            
+            $date_created = $order->get_date_created();
+            if ($date_created) {
+                if (!$first_order_date) {
+                    $first_order_date = $date_created->date('Y-m-d H:i:s');
+                }
+                $last_order_date = $date_created->date('Y-m-d H:i:s');
+            }
+        }
+        
+        $average_order_value = $total_orders > 0 ? $total_spent / $total_orders : 0;
+        
+        // Calculate total profit from SKU table  
+        $order_ids = array_map(function($order) { return $order->get_id(); }, $orders);
+        $order_ids_placeholder = implode(',', array_fill(0, count($order_ids), '%d'));
+        
+        $total_profit = $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT SUM(profit_amount * quantity) 
+                FROM {$wpdb->prefix}wc_analytics_sku_costs 
+                WHERE order_id IN ($order_ids_placeholder)",
+                $order_ids
+            )
+        );
+        
+        $total_profit = $total_profit ? floatval($total_profit) : 0;
+        $average_profit_per_order = $total_orders > 0 ? $total_profit / $total_orders : 0;
+        
+        // Calculate days since last order
+        $days_since_last_order = 0;
+        if ($last_order_date) {
+            $last_date = new DateTime($last_order_date);
+            $now = new DateTime();
+            $days_since_last_order = $now->diff($last_date)->days;
+        }
+        
+        // Calculate order frequency (orders per month)
+        $order_frequency = 0;
+        if ($first_order_date && $last_order_date && $first_order_date !== $last_order_date) {
+            $first_date = new DateTime($first_order_date);
+            $last_date = new DateTime($last_order_date);
+            $months = max(1, $first_date->diff($last_date)->m + ($first_date->diff($last_date)->y * 12));
+            $order_frequency = $total_orders / $months;
+        }
+        
+        // Determine customer segment using custom tiers
+        require_once(WC_ANALYTICS_PLUGIN_DIR . 'admin/class-loyalty-settings.php');
+        $customer_segment = WC_Analytics_Loyalty_Settings::get_customer_tier($total_spent);
+        
+        // Predicted LTV
+        $predicted_ltv = $total_spent * 1.5;
+        
+        // Check if record exists
+        $existing = $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT id FROM $table_name WHERE customer_phone = %s",
+                $phone
+            )
+        );
+        
+        $data = array(
+            'customer_id' => $customer_id,
+            'customer_email' => $customer_email,
+            'customer_phone' => $phone,
+            'customer_name' => $customer_name,
+            'total_orders' => $total_orders,
+            'total_spent' => $total_spent,
+            'total_profit' => $total_profit,
+            'average_order_value' => $average_order_value,
+            'average_profit_per_order' => $average_profit_per_order,
+            'first_order_date' => $first_order_date,
+            'last_order_date' => $last_order_date,
+            'lifetime_value' => $total_spent,
+            'predicted_ltv' => $predicted_ltv,
+            'days_since_last_order' => $days_since_last_order,
+            'order_frequency' => $order_frequency,
+            'customer_segment' => strtolower($customer_segment),
+            'is_active' => $days_since_last_order < 90 ? 1 : 0,
+            'date_calculated' => current_time('mysql')
+        );
+        
+        if ($existing) {
+            $wpdb->update(
+                $table_name,
+                $data,
+                array('id' => $existing->id),
+                array('%d', '%s', '%s', '%s', '%d', '%f', '%f', '%f', '%f', '%s', '%s', '%f', '%f', '%d', '%f', '%s', '%d', '%s'),
+                array('%d')
+            );
+        } else {
+            $wpdb->insert(
+                $table_name,
+                $data,
+                array('%d', '%s', '%s', '%s', '%d', '%f', '%f', '%f', '%f', '%s', '%s', '%f', '%f', '%d', '%f', '%s', '%d', '%s')
+            );
+        }
     }
     
     /**
@@ -173,8 +340,9 @@ class WC_Analytics_LTV_Calculator {
             $order_frequency = 0;
         }
         
-        // Determine customer segment
-        $customer_segment = $this->get_customer_segment($total_spent, $total_orders);
+        // Determine customer segment using custom tiers
+        require_once(WC_ANALYTICS_PLUGIN_DIR . 'admin/class-loyalty-settings.php');
+        $customer_segment = WC_Analytics_Loyalty_Settings::get_customer_tier($total_spent);
         
         // Predict future LTV (simple model: current LTV * predicted future orders)
         $predicted_ltv = $total_spent;
@@ -289,6 +457,17 @@ class WC_Analytics_LTV_Calculator {
         global $wpdb;
         $table_name = WC_Analytics_Database_Manager::get_table_name('customer_ltv');
         
+        // Get custom tiers
+        require_once(WC_ANALYTICS_PLUGIN_DIR . 'admin/class-loyalty-settings.php');
+        $tiers = WC_Analytics_Loyalty_Settings::get_loyalty_tiers();
+        
+        // Build dynamic tier counting
+        $tier_counts = '';
+        foreach ($tiers as $tier) {
+            $tier_slug = strtolower($tier['name']);
+            $tier_counts .= "COUNT(CASE WHEN customer_segment = '{$tier_slug}' THEN 1 END) as {$tier_slug}_customers,\n            ";
+        }
+        
         $query = "SELECT 
             COUNT(*) as total_customers,
             COUNT(CASE WHEN is_active = 1 THEN 1 END) as active_customers,
@@ -296,10 +475,8 @@ class WC_Analytics_LTV_Calculator {
             AVG(lifetime_value) as average_ltv,
             AVG(total_orders) as average_orders,
             AVG(average_order_value) as average_order_value,
-            COUNT(CASE WHEN customer_segment = 'platinum' THEN 1 END) as platinum_customers,
-            COUNT(CASE WHEN customer_segment = 'gold' THEN 1 END) as gold_customers,
-            COUNT(CASE WHEN customer_segment = 'silver' THEN 1 END) as silver_customers,
-            COUNT(CASE WHEN customer_segment = 'bronze' THEN 1 END) as bronze_customers
+            {$tier_counts}
+            SUM(total_profit) as total_profit
         FROM $table_name";
         
         return $wpdb->get_row($query);

@@ -114,6 +114,12 @@ function wc_analytics_init() {
     if (is_admin()) {
         require_once WC_ANALYTICS_PLUGIN_DIR . 'admin/class-admin-menu.php';
         require_once WC_ANALYTICS_PLUGIN_DIR . 'admin/class-dashboard-page.php';
+        require_once WC_ANALYTICS_PLUGIN_DIR . 'admin/class-loyalty-settings.php';
+        require_once WC_ANALYTICS_PLUGIN_DIR . 'admin/class-order-meta-box.php';
+        
+        // Initialize admin classes
+        new WC_Analytics_Loyalty_Settings();
+        new WC_Analytics_Order_Meta_Box();
     }
     
     // Initialize core class
