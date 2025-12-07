@@ -125,18 +125,35 @@ class WC_Analytics_LTV_Calculator {
         
         $table_name = $wpdb->prefix . 'wc_analytics_customer_ltv';
         
-        // Get all orders with this phone number
-        $orders = wc_get_orders(array(
+        // Get local format (without +880)
+        $local_phone = str_replace('+880', '0', $phone);
+        $numeric_only = str_replace('+880', '', $phone);
+        
+        // Get all orders with this phone number (search multiple formats)
+        $args = array(
             'limit' => -1,
             'status' => array('completed', 'processing'),
-            'meta_query' => array(
-                array(
-                    'key' => '_billing_phone',
-                    'value' => array($phone, str_replace('+880', '0', $phone)),
-                    'compare' => 'IN'
-                )
-            )
+        );
+        
+        // Get all orders and filter by phone manually for better matching
+        $all_orders = wc_get_orders(array(
+            'limit' => -1,
+            'status' => array('completed', 'processing'),
         ));
+        
+        $orders = array();
+        foreach ($all_orders as $order) {
+            $billing_phone = $order->get_billing_phone();
+            $formatted_billing = $this->format_phone_number($billing_phone);
+            
+            // Match if phones are the same in any format
+            if ($formatted_billing === $phone || 
+                $billing_phone === $phone || 
+                $billing_phone === $local_phone ||
+                preg_replace('/[^0-9]/', '', $billing_phone) === $numeric_only) {
+                $orders[] = $order;
+            }
+        }
         
         if (empty($orders)) {
             return;
