@@ -122,10 +122,13 @@ class WC_Analytics_LTV_Calculator {
         foreach ($orders as $order) {
             $total_spent += $order->get_total();
             
-            if (!$first_order_date) {
-                $first_order_date = $order->get_date_created()->date('Y-m-d H:i:s');
+            $date_created = $order->get_date_created();
+            if ($date_created) {
+                if (!$first_order_date) {
+                    $first_order_date = $date_created->date('Y-m-d H:i:s');
+                }
+                $last_order_date = $date_created->date('Y-m-d H:i:s');
             }
-            $last_order_date = $order->get_date_created()->date('Y-m-d H:i:s');
         }
         
         $average_order_value = $total_orders > 0 ? $total_spent / $total_orders : 0;
