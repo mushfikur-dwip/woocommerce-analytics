@@ -238,7 +238,7 @@ class WC_Analytics_LTV_Calculator {
         
         // Determine customer segment using custom tiers
         require_once(WC_ANALYTICS_PLUGIN_DIR . 'admin/class-loyalty-settings.php');
-        $customer_segment = WC_Analytics_Loyalty_Settings::get_customer_tier($total_spent);
+        $customer_segment = WC_Analytics_Loyalty_Settings::get_customer_tier($total_orders);
         
         // Predicted LTV
         $predicted_ltv = $total_spent * 1.5;
@@ -379,7 +379,7 @@ class WC_Analytics_LTV_Calculator {
         
         // Determine customer segment using custom tiers
         require_once(WC_ANALYTICS_PLUGIN_DIR . 'admin/class-loyalty-settings.php');
-        $customer_segment = WC_Analytics_Loyalty_Settings::get_customer_tier($total_spent);
+        $customer_segment = WC_Analytics_Loyalty_Settings::get_customer_tier($total_orders);
         
         // Predict future LTV (simple model: current LTV * predicted future orders)
         $predicted_ltv = $total_spent;
